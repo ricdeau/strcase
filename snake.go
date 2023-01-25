@@ -65,7 +65,7 @@ func ToDelimited(s string, delimiter uint8) string {
 // (in this case `delimiter = '.'; screaming = false`)
 func ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bool) string {
 	s = strings.TrimSpace(s)
-	n := strings.Builder{}
+	n := &strings.Builder{}
 	n.Grow(len(s) + 2) // nominal 2 bytes of extra space for inserted delimiters
 	for i, v := range []byte(s) {
 		vIsCap := v >= 'A' && v <= 'Z'
@@ -91,12 +91,12 @@ func ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bo
 				if !prevIgnore {
 					if vIsCap && nextIsLow {
 						if prevIsCap := i > 0 && s[i-1] >= 'A' && s[i-1] <= 'Z'; prevIsCap {
-							n.WriteByte(delimiter)
+							maybeWriteByte(n, delimiter)
 						}
 					}
 					n.WriteByte(v)
 					if vIsLow || vIsNum || nextIsNum {
-						n.WriteByte(delimiter)
+						maybeWriteByte(n, delimiter)
 					}
 					continue
 				}
@@ -105,11 +105,18 @@ func ToScreamingDelimited(s string, delimiter uint8, ignore string, screaming bo
 
 		if (v == ' ' || v == '_' || v == '-' || v == '.') && !strings.ContainsAny(string(v), ignore) {
 			// replace space/underscore/hyphen/dot with delimiter
-			n.WriteByte(delimiter)
+			// if delimiter id byte(0) then noop
+			maybeWriteByte(n, delimiter)
 		} else {
 			n.WriteByte(v)
 		}
 	}
 
 	return n.String()
+}
+
+func maybeWriteByte(b *strings.Builder, c byte) {
+	if c != 0 {
+		b.WriteByte(c)
+	}
 }
